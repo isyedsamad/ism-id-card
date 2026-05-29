@@ -41,6 +41,12 @@ export default function DocumentDetail() {
   const [customCourse, setCustomCourse] = useState("");
   const [photoBase64, setPhotoBase64] = useState("");
   const [compressing, setCompressing] = useState(false);
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
+  const [cropImageSrc, setCropImageSrc] = useState("");
+  const [zoom, setZoom] = useState(1);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -81,14 +87,56 @@ export default function DocumentDetail() {
 
     setCompressing(true);
     try {
-      const compressed = await compressImage(file);
-      setPhotoBase64(compressed);
+      const reader = new FileReader();
+      reader.onload = () => {
+        setCropImageSrc(reader.result as string);
+        setZoom(1);
+        setOffset({ x: 0, y: 0 });
+        setIsCropModalOpen(true);
+      };
+      reader.readAsDataURL(file);
     } catch (error) {
       console.error(error);
       alert("Failed to process image.");
     } finally {
       setCompressing(false);
     }
+  };
+
+  const handleApplyCrop = () => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 400;
+    canvas.height = 400;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const img = new Image();
+    img.src = cropImageSrc;
+    img.onload = () => {
+      ctx.clearRect(0, 0, 400, 400);
+      const viewSize = 250;
+      const targetSize = 400;
+      const imgAspect = img.width / img.height;
+      let drawW = viewSize;
+      let drawH = viewSize;
+      if (imgAspect > 1) {
+        drawH = viewSize / imgAspect;
+      } else {
+        drawW = viewSize * imgAspect;
+      }
+
+      const scaleFactor = targetSize / viewSize;
+      ctx.save();
+      ctx.translate(targetSize / 2, targetSize / 2);
+      ctx.scale(zoom * scaleFactor, zoom * scaleFactor);
+      ctx.translate(offset.x / zoom, offset.y / zoom);
+      ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
+      ctx.restore();
+
+      const croppedBase64 = canvas.toDataURL("image/jpeg", 0.85);
+      setPhotoBase64(croppedBase64);
+      setIsCropModalOpen(false);
+    };
   };
 
   const openAddModal = () => {
@@ -215,8 +263,8 @@ export default function DocumentDetail() {
                 : "bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
                 }`}
             >
-              <Printer className="w-4 h-4" />
-              Print ID Sheet
+              <FileDown className="w-4 h-4" />
+              Download PDF
             </Link>
           </div>
         </div>
@@ -260,7 +308,7 @@ export default function DocumentDetail() {
                   key={student.id}
                   className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm flex flex-col items-center group relative hover:border-indigo-400 hover:shadow-md transition-all duration-300"
                 >
-                  <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                  <div className="absolute top-4 right-4 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-20">
                     <button
                       onClick={() => openEditModal(student)}
                       className="p-2 bg-slate-100 hover:bg-indigo-100 hover:text-indigo-600 rounded-lg text-slate-600 transition-all cursor-pointer"
@@ -450,6 +498,98 @@ export default function DocumentDetail() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {isCropModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden">
+            <div className="bg-slate-900 text-white px-6 py-4 flex justify-between items-center">
+              <h3 className="font-bold text-lg">Crop Student Photo (1:1)</h3>
+              <button
+                onClick={() => setIsCropModalOpen(false)}
+                className="text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 flex flex-col items-center gap-6">
+              <div
+                className="w-[250px] h-[250px] overflow-hidden relative rounded-xl border border-slate-200 bg-slate-100 cursor-move select-none"
+                onMouseDown={(e) => {
+                  setIsDragging(true);
+                  setDragStart({ x: e.clientX - offset.x, y: e.clientY - offset.y });
+                }}
+                onMouseMove={(e) => {
+                  if (isDragging) {
+                    setOffset({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
+                  }
+                }}
+                onMouseUp={() => setIsDragging(false)}
+                onMouseLeave={() => setIsDragging(false)}
+                onTouchStart={(e) => {
+                  if (e.touches.length === 1) {
+                    setIsDragging(true);
+                    setDragStart({ x: e.touches[0].clientX - offset.x, y: e.touches[0].clientY - offset.y });
+                  }
+                }}
+                onTouchMove={(e) => {
+                  if (isDragging && e.touches.length === 1) {
+                    setOffset({ x: e.touches[0].clientX - dragStart.x, y: e.touches[0].clientY - dragStart.y });
+                  }
+                }}
+                onTouchEnd={() => setIsDragging(false)}
+              >
+                <img
+                  src={cropImageSrc}
+                  alt="To Crop"
+                  className="pointer-events-none absolute max-w-none origin-center"
+                  style={{
+                    width: "250px",
+                    height: "250px",
+                    objectFit: "contain",
+                    transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
+                  }}
+                />
+                <div className="absolute inset-0 border-[3px] border-indigo-600 rounded-full pointer-events-none opacity-40"></div>
+              </div>
+
+              <div className="w-full space-y-2">
+                <div className="flex justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  <span>Zoom</span>
+                  <span>{Math.round(zoom * 100)}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="1"
+                  max="3"
+                  step="0.05"
+                  value={zoom}
+                  onChange={(e) => setZoom(parseFloat(e.target.value))}
+                  className="w-full accent-indigo-600 cursor-pointer h-2 bg-slate-200 rounded-lg appearance-none"
+                />
+                <p className="text-[10px] text-slate-400 text-center">Drag the photo inside the circle to adjust its position</p>
+              </div>
+
+              <div className="flex justify-end gap-3 w-full">
+                <button
+                  type="button"
+                  onClick={() => setIsCropModalOpen(false)}
+                  className="px-4 py-2 border border-slate-200 rounded-xl text-slate-700 text-sm font-semibold hover:bg-slate-50 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleApplyCrop}
+                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm cursor-pointer"
+                >
+                  Apply Crop
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

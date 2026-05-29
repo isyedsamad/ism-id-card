@@ -6,7 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { doc, getDoc, collection, getDocs, query, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { IdCard } from "@/components/IdCard";
-import { ArrowLeft, Printer } from "lucide-react";
+import { ArrowLeft, FileDown } from "lucide-react";
 
 interface Student {
   id: string;
@@ -115,16 +115,16 @@ export default function PrintPage() {
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
-            <h1 className="font-bold text-base">{documentInfo?.title || "Print Preview"}</h1>
-            <p className="text-[11px] text-slate-400">A4 Portrait Sheet Grid (2x5 - 10 ID Cards per page)</p>
+            <h1 className="font-bold text-base">{documentInfo?.title || "PDF Preview"}</h1>
+            <p className="text-[11px] text-slate-400">A4 Portrait Grid (Set Destination to "Save as PDF" to download)</p>
           </div>
         </div>
         <button
           onClick={handlePrint}
           className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm rounded-xl px-5 py-2.5 flex items-center justify-center gap-2 cursor-pointer shadow-lg transition-colors"
         >
-          <Printer className="w-4 h-4" />
-          Print Document
+          <FileDown className="w-4 h-4" />
+          Download PDF
         </button>
       </header>
 
