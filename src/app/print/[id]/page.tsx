@@ -7,7 +7,7 @@ import { doc, getDoc, collection, getDocs, query, orderBy } from "firebase/fires
 import { db } from "@/lib/firebase";
 import { IdCard } from "@/components/IdCard";
 import { ArrowLeft, FileDown } from "lucide-react";
-import html2canvas from "html2canvas";
+import html2canvas from "html2canvas-pro";
 import { jsPDF } from "jspdf";
 
 interface Student {
@@ -110,9 +110,9 @@ export default function PrintPage() {
       }
 
       pdf.save(`ID Card ${dateStr}.pdf`);
-    } catch (error) {
+    } catch (error: any) {
       console.error("PDF generation failed:", error);
-      alert("Failed to generate PDF. Please try again.");
+      alert("Failed to generate PDF: " + (error?.message || error?.stack || error || "Unknown error"));
     } finally {
       setPdfGenerating(false);
     }
@@ -187,8 +187,8 @@ export default function PrintPage() {
                 style={{
                   width: "210mm",
                   height: "297mm",
-                  paddingTop: "13.5mm",
-                  paddingBottom: "13.5mm",
+                  paddingTop: "5.5mm",
+                  paddingBottom: "5.5mm",
                   paddingLeft: "17.4mm",
                   paddingRight: "17.4mm",
                   boxSizing: "border-box",
@@ -196,6 +196,7 @@ export default function PrintPage() {
                   gridTemplateColumns: "repeat(2, 85.6mm)",
                   gridTemplateRows: "repeat(5, 54mm)",
                   columnGap: "4mm",
+                  rowGap: "4mm",
                   justifyContent: "center",
                   alignContent: "center",
                 }}
@@ -217,7 +218,7 @@ export default function PrintPage() {
         ))}
       </main>
 
-      <div id="print-only-container" className="hidden print:block bg-white text-black min-h-screen">
+      <div id="print-only-container" className="absolute left-[-9999px] top-[-9999px] print:static print:block bg-white text-black">
         {studentChunks.map((chunk, pageIndex) => (
           <div
             key={pageIndex}
@@ -225,8 +226,8 @@ export default function PrintPage() {
             style={{
               width: "210mm",
               height: "297mm",
-              paddingTop: "13.5mm",
-              paddingBottom: "13.5mm",
+              paddingTop: "5.5mm",
+              paddingBottom: "5.5mm",
               paddingLeft: "17.4mm",
               paddingRight: "17.4mm",
               boxSizing: "border-box",
@@ -234,6 +235,7 @@ export default function PrintPage() {
               gridTemplateColumns: "repeat(2, 85.6mm)",
               gridTemplateRows: "repeat(5, 54mm)",
               columnGap: "4mm",
+              rowGap: "4mm",
               justifyContent: "center",
               alignContent: "center",
               backgroundColor: "white",

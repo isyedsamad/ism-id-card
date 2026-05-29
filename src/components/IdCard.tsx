@@ -41,6 +41,7 @@ export function IdCard({ studentId, name, course, photoBase64, fontSizeName }: I
             fontWeight: 900,
             color: "#ffffff",
             lineHeight: 1,
+            marginTop: "1mm",
             letterSpacing: "0em"
           }}
         >
