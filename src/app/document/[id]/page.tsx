@@ -658,6 +658,7 @@ export default function DocumentDetail() {
             <div className="p-6 flex flex-col items-center gap-6">
               <div
                 className="w-[250px] h-[250px] overflow-hidden relative rounded-xl border border-slate-200 bg-slate-100 cursor-move select-none"
+                style={{ touchAction: "none" }}
                 onMouseDown={(e) => {
                   setIsDragging(true);
                   setDragStart({ x: e.clientX - offset.x, y: e.clientY - offset.y });
@@ -677,6 +678,7 @@ export default function DocumentDetail() {
                 }}
                 onTouchMove={(e) => {
                   if (isDragging && e.touches.length === 1) {
+                    e.preventDefault();
                     setOffset({ x: e.touches[0].clientX - dragStart.x, y: e.touches[0].clientY - dragStart.y });
                   }
                 }}
