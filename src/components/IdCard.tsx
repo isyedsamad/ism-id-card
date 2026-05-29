@@ -124,7 +124,7 @@ export function IdCard({ studentId, name, course, photoBase64 }: IdCardProps) {
           left: "40mm",
           top: "14mm",
           fontFamily: "var(--font-poppins), sans-serif",
-          fontSize: "17px",
+          fontSize: "19px",
           fontWeight: "bold",
           color: "#000000",
           textTransform: "uppercase",

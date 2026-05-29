@@ -564,7 +564,7 @@ export default function DocumentDetail() {
                 <input
                   type="range"
                   min="1"
-                  max="3"
+                  max="8"
                   step="0.05"
                   value={zoom}
                   onChange={(e) => setZoom(parseFloat(e.target.value))}
