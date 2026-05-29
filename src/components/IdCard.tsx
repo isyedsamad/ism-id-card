@@ -5,9 +5,10 @@ interface IdCardProps {
   name: string;
   course: string;
   photoBase64: string;
+  fontSizeName?: number;
 }
 
-export function IdCard({ studentId, name, course, photoBase64 }: IdCardProps) {
+export function IdCard({ studentId, name, course, photoBase64, fontSizeName }: IdCardProps) {
   const qrValue = `https://www.youtube.com/watch?v=c69V5V-Yvss`;
 
   return (
@@ -121,10 +122,10 @@ export function IdCard({ studentId, name, course, photoBase64 }: IdCardProps) {
       <div
         style={{
           position: "absolute",
-          left: "40mm",
+          left: "38mm",
           top: "14mm",
           fontFamily: "var(--font-poppins), sans-serif",
-          fontSize: "19px",
+          fontSize: fontSizeName ? `${fontSizeName}px` : "19px",
           fontWeight: "bold",
           color: "#000000",
           textTransform: "uppercase",
@@ -156,13 +157,16 @@ export function IdCard({ studentId, name, course, photoBase64 }: IdCardProps) {
         style={{
           position: "absolute",
           left: "40mm",
-          top: "27.5mm",
+          top: "28mm",
+          maxWidth: "25mm",
           fontFamily: "var(--font-poppins), sans-serif",
           fontSize: "15px",
           fontWeight: "800",
           color: "#000000",
           textTransform: "uppercase",
-          zIndex: 10
+          zIndex: 10,
+          whiteSpace: "normal",
+          lineHeight: "1.1"
         }}
       >
         {course || "COURSE"}

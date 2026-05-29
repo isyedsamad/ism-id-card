@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { doc, getDoc, collection, onSnapshot, query, orderBy, writeBatch, increment } from "firebase/firestore";
+import { doc, getDoc, collection, onSnapshot, query, orderBy, writeBatch, increment, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { compressImage } from "@/lib/image-compressor";
 import { IdCard } from "@/components/IdCard";
@@ -15,11 +15,13 @@ interface Student {
   name: string;
   course: string;
   photoBase64: string;
+  fontSizeName?: number;
 }
 
 interface DocumentData {
   title: string;
   studentCount?: number;
+  globalNameFontSize?: number;
 }
 
 export default function DocumentDetail() {
@@ -37,6 +39,7 @@ export default function DocumentDetail() {
     name: "",
     course: "",
   });
+  const [fontSizeName, setFontSizeName] = useState<number | "">("");
   const [selectedCourseOption, setSelectedCourseOption] = useState("");
   const [customCourse, setCustomCourse] = useState("");
   const [photoBase64, setPhotoBase64] = useState("");
@@ -145,6 +148,7 @@ export default function DocumentDetail() {
     setSelectedCourseOption("");
     setCustomCourse("");
     setPhotoBase64("");
+    setFontSizeName("");
     setIsModalOpen(true);
   };
 
@@ -163,6 +167,7 @@ export default function DocumentDetail() {
       setCustomCourse(student.course);
     }
     setPhotoBase64(student.photoBase64 || "");
+    setFontSizeName(typeof student.fontSizeName === "number" ? student.fontSizeName : "");
     setIsModalOpen(true);
   };
 
@@ -182,6 +187,7 @@ export default function DocumentDetail() {
         name: formData.name.trim(),
         course: formData.course.trim(),
         photoBase64: photoBase64 || "",
+        fontSizeName: fontSizeName !== "" ? fontSizeName : null,
         createdAt: new Date(),
       });
     } else {
@@ -191,6 +197,7 @@ export default function DocumentDetail() {
         name: formData.name.trim(),
         course: formData.course.trim(),
         photoBase64: photoBase64 || "",
+        fontSizeName: fontSizeName !== "" ? fontSizeName : null,
         createdAt: new Date(),
       });
 
@@ -302,41 +309,132 @@ export default function DocumentDetail() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-              {students.map((student) => (
-                <div
-                  key={student.id}
-                  className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm flex flex-col items-center group relative hover:border-indigo-400 hover:shadow-md transition-all duration-300"
-                >
-                  <div className="absolute top-4 right-4 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-20">
-                    <button
-                      onClick={() => openEditModal(student)}
-                      className="p-2 bg-slate-100 hover:bg-indigo-100 hover:text-indigo-600 rounded-lg text-slate-600 transition-all cursor-pointer"
-                      title="Edit Student"
-                    >
-                      <Edit2 className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(student.id)}
-                      className="p-2 bg-slate-100 hover:bg-rose-100 hover:text-rose-600 rounded-lg text-slate-600 transition-all cursor-pointer"
-                      title="Delete Student"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 mb-8 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wider">Global Name Font Size</h3>
+                <p className="text-xs text-slate-400 font-medium">Adjust the name font size for all cards in this batch</p>
+              </div>
+              <div className="flex items-center gap-3 w-full sm:w-auto sm:min-w-[300px]">
+                <input
+                  type="range"
+                  min="12"
+                  max="26"
+                  step="1"
+                  value={documentInfo?.globalNameFontSize || 19}
+                  onChange={async (e) => {
+                    const val = parseInt(e.target.value);
+                    setDocumentInfo(prev => prev ? { ...prev, globalNameFontSize: val } : null);
+                    const docRef = doc(db, "documents", id);
+                    await updateDoc(docRef, { globalNameFontSize: val });
+                  }}
+                  className="w-full accent-indigo-600 cursor-pointer h-2 bg-slate-100 rounded-lg appearance-none border border-slate-200"
+                />
+                <span className="text-sm font-extrabold text-slate-700 min-w-[45px] text-right bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1">
+                  {documentInfo?.globalNameFontSize || 19}px
+                </span>
+                {(documentInfo?.globalNameFontSize && documentInfo.globalNameFontSize !== 19) ? (
+                  <button
+                    onClick={async () => {
+                      setDocumentInfo(prev => prev ? { ...prev, globalNameFontSize: 19 } : null);
+                      const docRef = doc(db, "documents", id);
+                      await updateDoc(docRef, { globalNameFontSize: 19 });
+                    }}
+                    className="text-xs text-indigo-600 hover:text-indigo-800 font-bold uppercase transition-colors whitespace-nowrap cursor-pointer"
+                  >
+                    Reset
+                  </button>
+                ) : null}
+              </div>
+            </div>
 
-                  <div className="w-full flex items-center justify-center py-2 min-h-[180px] sm:min-h-[225px] overflow-hidden">
-                    <div className="scale-[0.8] sm:scale-100 origin-center flex-shrink-0 transition-transform duration-300 group-hover:scale-[0.82] sm:group-hover:scale-[1.02]">
-                      <IdCard
-                        studentId={student.studentId}
-                        name={student.name}
-                        course={student.course}
-                        photoBase64={student.photoBase64}
-                      />
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+              {students.map((student) => {
+                const globalFontSize = documentInfo?.globalNameFontSize || 19;
+                const currentFontSize = student.fontSizeName || globalFontSize;
+                const isCustom = typeof student.fontSizeName === "number";
+
+                return (
+                  <div
+                    key={student.id}
+                    className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm flex flex-col items-center group relative hover:border-indigo-400 hover:shadow-md transition-all duration-300"
+                  >
+                    <div className="absolute top-4 right-4 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-20">
+                      <button
+                        onClick={() => openEditModal(student)}
+                        className="p-2 bg-slate-100 hover:bg-indigo-100 hover:text-indigo-600 rounded-lg text-slate-600 transition-all cursor-pointer"
+                        title="Edit Student"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(student.id)}
+                        className="p-2 bg-slate-100 hover:bg-rose-100 hover:text-rose-600 rounded-lg text-slate-600 transition-all cursor-pointer"
+                        title="Delete Student"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <div className="w-full flex items-center justify-center py-2 min-h-[180px] sm:min-h-[225px] overflow-hidden">
+                      <div className="scale-[0.8] sm:scale-100 origin-center flex-shrink-0 transition-transform duration-300 group-hover:scale-[0.82] sm:group-hover:scale-[1.02]">
+                        <IdCard
+                          studentId={student.studentId}
+                          name={student.name}
+                          course={student.course}
+                          photoBase64={student.photoBase64}
+                          fontSizeName={currentFontSize}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="w-full mt-4 pt-4 border-t border-slate-100 flex flex-col gap-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                          {isCustom ? "Custom Size" : "Font Size (Global)"}
+                        </span>
+                        <span className="text-xs font-extrabold text-slate-700">
+                          {currentFontSize}px
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="range"
+                          min="12"
+                          max="26"
+                          step="1"
+                          value={currentFontSize}
+                          onChange={async (e) => {
+                            const val = parseInt(e.target.value);
+                            setStudents(prev => prev.map(s => s.id === student.id ? { ...s, fontSizeName: val } : s));
+                            const studentRef = doc(db, "documents", id, "students", student.id);
+                            await updateDoc(studentRef, { fontSizeName: val });
+                          }}
+                          className="w-full accent-indigo-600 cursor-pointer h-1.5 bg-slate-100 rounded-lg appearance-none border border-slate-200"
+                        />
+                        {isCustom && (
+                          <button
+                            onClick={async () => {
+                              setStudents(prev => prev.map(s => {
+                                if (s.id === student.id) {
+                                  const copy = { ...s };
+                                  delete copy.fontSizeName;
+                                  return copy;
+                                }
+                                return s;
+                              }));
+                              const studentRef = doc(db, "documents", id, "students", student.id);
+                              await updateDoc(studentRef, { fontSizeName: null });
+                            }}
+                            className="text-[10px] text-indigo-600 hover:text-indigo-800 font-bold uppercase transition-colors whitespace-nowrap cursor-pointer"
+                          >
+                            Reset
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -430,6 +528,48 @@ export default function DocumentDetail() {
                   />
                 </div>
               )}
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    Name Font Size
+                  </label>
+                  <span className="text-xs font-semibold text-slate-400">
+                    {fontSizeName === "" ? "Using Global" : `${fontSizeName}px`}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl p-3">
+                  <input
+                    type="checkbox"
+                    checked={fontSizeName !== ""}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setFontSizeName(documentInfo?.globalNameFontSize || 19);
+                      } else {
+                        setFontSizeName("");
+                      }
+                    }}
+                    className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer"
+                    id="override-font-size"
+                  />
+                  <label htmlFor="override-font-size" className="text-xs font-semibold text-slate-600 cursor-pointer select-none">
+                    Custom size
+                  </label>
+                  {fontSizeName !== "" && (
+                    <div className="flex items-center gap-2 flex-1 ml-2">
+                      <input
+                        type="range"
+                        min="12"
+                        max="26"
+                        step="1"
+                        value={fontSizeName}
+                        onChange={(e) => setFontSizeName(parseInt(e.target.value))}
+                        className="w-full accent-indigo-600 cursor-pointer h-1.5 bg-slate-200 rounded-lg appearance-none"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">

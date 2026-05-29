@@ -7,6 +7,8 @@ import { doc, getDoc, collection, getDocs, query, orderBy } from "firebase/fires
 import { db } from "@/lib/firebase";
 import { IdCard } from "@/components/IdCard";
 import { ArrowLeft, FileDown } from "lucide-react";
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
 
 interface Student {
   id: string;
@@ -14,10 +16,12 @@ interface Student {
   name: string;
   course: string;
   photoBase64: string;
+  fontSizeName?: number;
 }
 
 interface DocumentData {
   title: string;
+  globalNameFontSize?: number;
 }
 
 function chunkArray<T>(array: T[], size: number): T[][] {
@@ -35,6 +39,7 @@ export default function PrintPage() {
   const [documentInfo, setDocumentInfo] = useState<DocumentData | null>(null);
   const [studentChunks, setStudentChunks] = useState<Student[][]>([]);
   const [loading, setLoading] = useState(true);
+  const [pdfGenerating, setPdfGenerating] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -66,8 +71,51 @@ export default function PrintPage() {
     });
   }, [id, router]);
 
-  const handlePrint = () => {
-    window.print();
+  const getFormattedDate = () => {
+    const today = new Date();
+    const dd = String(today.getDate()).padStart(2, "0");
+    const mm = String(today.getMonth() + 1).padStart(2, "0");
+    const yyyy = today.getFullYear();
+    return `${dd}-${mm}-${yyyy}`;
+  };
+
+  const handleDownloadPDF = async () => {
+    if (pdfGenerating) return;
+    setPdfGenerating(true);
+    try {
+      const sheets = document.querySelectorAll("#print-only-container .print-sheet");
+      if (sheets.length === 0) {
+        alert("No sheets found to export.");
+        setPdfGenerating(false);
+        return;
+      }
+
+      const pdf = new jsPDF("p", "mm", "a4");
+      const dateStr = getFormattedDate();
+
+      for (let i = 0; i < sheets.length; i++) {
+        const sheet = sheets[i] as HTMLElement;
+        const canvas = await html2canvas(sheet, {
+          scale: 3,
+          useCORS: true,
+          logging: false,
+          allowTaint: true,
+        });
+
+        const imgData = canvas.toDataURL("image/jpeg", 0.95);
+        if (i > 0) {
+          pdf.addPage();
+        }
+        pdf.addImage(imgData, "JPEG", 0, 0, 210, 297);
+      }
+
+      pdf.save(`ID Card ${dateStr}.pdf`);
+    } catch (error) {
+      console.error("PDF generation failed:", error);
+      alert("Failed to generate PDF. Please try again.");
+    } finally {
+      setPdfGenerating(false);
+    }
   };
 
   if (loading) {
@@ -116,12 +164,13 @@ export default function PrintPage() {
           </Link>
           <div>
             <h1 className="font-bold text-base">{documentInfo?.title || "PDF Preview"}</h1>
-            <p className="text-[11px] text-slate-400">A4 Portrait Grid (Set Destination to "Save as PDF" to download)</p>
+            <p className="text-[11px] text-slate-400">A4 Portrait Grid (Direct High-Quality PDF Export)</p>
           </div>
         </div>
         <button
-          onClick={handlePrint}
-          className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm rounded-xl px-5 py-2.5 flex items-center justify-center gap-2 cursor-pointer shadow-lg transition-colors"
+          onClick={handleDownloadPDF}
+          disabled={pdfGenerating}
+          className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-800 text-white font-semibold text-sm rounded-xl px-5 py-2.5 flex items-center justify-center gap-2 cursor-pointer shadow-lg transition-colors"
         >
           <FileDown className="w-4 h-4" />
           Download PDF
@@ -158,6 +207,7 @@ export default function PrintPage() {
                       name={student.name}
                       course={student.course}
                       photoBase64={student.photoBase64}
+                      fontSizeName={student.fontSizeName || documentInfo?.globalNameFontSize || 19}
                     />
                   </div>
                 ))}
@@ -167,7 +217,7 @@ export default function PrintPage() {
         ))}
       </main>
 
-      <div className="hidden print:block bg-white text-black min-h-screen">
+      <div id="print-only-container" className="hidden print:block bg-white text-black min-h-screen">
         {studentChunks.map((chunk, pageIndex) => (
           <div
             key={pageIndex}
@@ -196,12 +246,21 @@ export default function PrintPage() {
                   name={student.name}
                   course={student.course}
                   photoBase64={student.photoBase64}
+                  fontSizeName={student.fontSizeName || documentInfo?.globalNameFontSize || 19}
                 />
               </div>
             ))}
           </div>
         ))}
       </div>
+
+      {pdfGenerating && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex flex-col items-center justify-center gap-4 z-50">
+          <div className="w-16 h-16 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+          <h2 className="text-xl font-bold text-white tracking-tight">Generating High Quality PDF</h2>
+          <p className="text-slate-400 text-sm">Please wait, rendering sheets at full print resolution...</p>
+        </div>
+      )}
     </div>
   );
 }
