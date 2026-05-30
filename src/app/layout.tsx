@@ -16,6 +16,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "ISM ID Card Generator",
   description: "Create, manage, and print student ID cards in high-quality batch sheets.",
+  icons: {
+    icon: "/ISM.png",
+  },
 };
 
 export default function RootLayout({
