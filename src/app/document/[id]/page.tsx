@@ -300,7 +300,7 @@ export default function DocumentDetail() {
           </div>
         ) : (
           <div>
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-col md:flex-row justify-between items-center mb-4">
               <h2 className="text-xl font-extrabold text-slate-800 tracking-tight">
                 Preview Sheet ({students.length} Student{students.length !== 1 ? "s" : ""})
               </h2>
@@ -309,18 +309,18 @@ export default function DocumentDetail() {
               </div>
             </div>
 
-            <div className="bg-white border border-slate-200 rounded-2xl p-5 mb-8 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="space-y-1">
+            <div className="bg-white border border-slate-200 rounded-2xl px-5 py-4 mb-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="space-y-0">
                 <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wider">Global Name Font Size</h3>
-                <p className="text-xs text-slate-400 font-medium">Adjust the name font size for all cards in this batch</p>
+                <p className="text-xs text-slate-400 font-medium">Adjust the name font size for all cards</p>
               </div>
               <div className="flex items-center gap-3 w-full sm:w-auto sm:min-w-[300px]">
                 <input
                   type="range"
                   min="12"
-                  max="26"
+                  max="30"
                   step="1"
-                  value={documentInfo?.globalNameFontSize || 19}
+                  value={documentInfo?.globalNameFontSize || 21}
                   onChange={async (e) => {
                     const val = parseInt(e.target.value);
                     setDocumentInfo(prev => prev ? { ...prev, globalNameFontSize: val } : null);
@@ -329,21 +329,19 @@ export default function DocumentDetail() {
                   }}
                   className="w-full accent-indigo-600 cursor-pointer h-2 bg-slate-100 rounded-lg appearance-none border border-slate-200"
                 />
-                <span className="text-sm font-extrabold text-slate-700 min-w-[45px] text-right bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1">
+                <span className="text-sm font-bold text-slate-700 text-right bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1">
                   {documentInfo?.globalNameFontSize || 19}px
                 </span>
-                {(documentInfo?.globalNameFontSize && documentInfo.globalNameFontSize !== 19) ? (
-                  <button
-                    onClick={async () => {
-                      setDocumentInfo(prev => prev ? { ...prev, globalNameFontSize: 19 } : null);
-                      const docRef = doc(db, "documents", id);
-                      await updateDoc(docRef, { globalNameFontSize: 19 });
-                    }}
-                    className="text-xs text-indigo-600 hover:text-indigo-800 font-bold uppercase transition-colors whitespace-nowrap cursor-pointer"
-                  >
-                    Reset
-                  </button>
-                ) : null}
+                <button
+                  onClick={async () => {
+                    setDocumentInfo(prev => prev ? { ...prev, globalNameFontSize: 21 } : null);
+                    const docRef = doc(db, "documents", id);
+                    await updateDoc(docRef, { globalNameFontSize: 19 });
+                  }}
+                  className="text-xs text-indigo-600 hover:text-indigo-800 font-bold uppercase transition-colors whitespace-nowrap cursor-pointer"
+                >
+                  Reset
+                </button>
               </div>
             </div>
 
@@ -356,7 +354,7 @@ export default function DocumentDetail() {
                 return (
                   <div
                     key={student.id}
-                    className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm flex flex-col items-center group relative hover:border-indigo-400 hover:shadow-md transition-all duration-300"
+                    className="bg-white border border-slate-200 pt-2 pb-3 px-5 rounded-2xl shadow-sm flex flex-col items-center group relative hover:border-indigo-400 hover:shadow-md transition-all duration-300"
                   >
                     <div className="absolute top-4 right-4 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-20">
                       <button
@@ -375,7 +373,7 @@ export default function DocumentDetail() {
                       </button>
                     </div>
 
-                    <div className="w-full flex items-center justify-center py-2 min-h-[180px] sm:min-h-[225px] overflow-hidden">
+                    <div className="w-full flex items-center justify-center pt-2 min-h-[180px] sm:min-h-[225px] overflow-hidden">
                       <div className="scale-[0.8] sm:scale-100 origin-center flex-shrink-0 transition-transform duration-300 group-hover:scale-[0.82] sm:group-hover:scale-[1.02]">
                         <IdCard
                           studentId={student.studentId}
@@ -387,7 +385,7 @@ export default function DocumentDetail() {
                       </div>
                     </div>
 
-                    <div className="w-full mt-4 pt-4 border-t border-slate-100 flex flex-col gap-2">
+                    <div className="w-full mt-0 pt-2 border-t border-slate-100 flex flex-col gap-0">
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                           {isCustom ? "Custom Size" : "Font Size (Global)"}
@@ -400,7 +398,7 @@ export default function DocumentDetail() {
                         <input
                           type="range"
                           min="12"
-                          max="26"
+                          max="30"
                           step="1"
                           value={currentFontSize}
                           onChange={async (e) => {
@@ -411,25 +409,23 @@ export default function DocumentDetail() {
                           }}
                           className="w-full accent-indigo-600 cursor-pointer h-1.5 bg-slate-100 rounded-lg appearance-none border border-slate-200"
                         />
-                        {isCustom && (
-                          <button
-                            onClick={async () => {
-                              setStudents(prev => prev.map(s => {
-                                if (s.id === student.id) {
-                                  const copy = { ...s };
-                                  delete copy.fontSizeName;
-                                  return copy;
-                                }
-                                return s;
-                              }));
-                              const studentRef = doc(db, "documents", id, "students", student.id);
-                              await updateDoc(studentRef, { fontSizeName: null });
-                            }}
-                            className="text-[10px] text-indigo-600 hover:text-indigo-800 font-bold uppercase transition-colors whitespace-nowrap cursor-pointer"
-                          >
-                            Reset
-                          </button>
-                        )}
+                        <button
+                          onClick={async () => {
+                            setStudents(prev => prev.map(s => {
+                              if (s.id === student.id) {
+                                const copy = { ...s };
+                                delete copy.fontSizeName;
+                                return copy;
+                              }
+                              return s;
+                            }));
+                            const studentRef = doc(db, "documents", id, "students", student.id);
+                            await updateDoc(studentRef, { fontSizeName: null });
+                          }}
+                          className="text-[10px] text-indigo-600 hover:text-indigo-800 font-bold uppercase transition-colors whitespace-nowrap cursor-pointer"
+                        >
+                          Reset
+                        </button>
                       </div>
                     </div>
                   </div>

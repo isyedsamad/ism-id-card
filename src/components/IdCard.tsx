@@ -56,6 +56,7 @@ export function IdCard({ studentId, name, course, photoBase64, fontSizeName }: I
               textTransform: "uppercase",
               letterSpacing: "0.02em",
               color: "#ffffff",
+              marginTop: '1mm',
               lineHeight: 1.2
             }}
           >
